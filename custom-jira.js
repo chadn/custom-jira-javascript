@@ -3,6 +3,11 @@
 
 var CustomJira = AJS.CustomJira = makeClass();
 
+/**
+ * Initialize and run.
+ *
+ * @param {Object} [opts] - an optional set of configuration options, details in comments. 
+ */
 CustomJira.prototype.init = function(opts) {
     var me = this;
 
@@ -47,6 +52,11 @@ CustomJira.prototype.init = function(opts) {
 };
 
 
+/**
+ * Parses the "Issues in Epic" table.
+ *
+ * @returns {Object} table row data, where each object key is the issue key, object value is html
+ */
 CustomJira.prototype.getEpicTableRows = function() {
     if (!AJS.$('#ghx-issues-in-epic-table tbody').html()) return {};
     var found;
@@ -63,6 +73,11 @@ CustomJira.prototype.getEpicTableRows = function() {
 };
 
 
+/**
+ * Modifies "Issues in Epic" table, adding priority icon, and reordering rows.
+ *
+ * @param {Object} tr - table row data, from getEpicTableRows
+ */
 CustomJira.prototype.updateEpicTable = function(tr) {
     var me = this;
     var issuesObj = {};
@@ -90,12 +105,12 @@ CustomJira.prototype.updateEpicTable = function(tr) {
     AJS.$('#ghx-issues-in-epic-table tr').each(function(){
         var row = this;
         var issueKey = AJS.$(this).attr("data-issuekey");
-        var hoverText = issuesObj[issueKey].fields.priority.name + ' Priority. '
-            + " Estimated: " + me.uiFriendlyTime(issuesObj[issueKey].fields.aggregatetimeoriginalestimate)
-            + ", Remaining: " + me.uiFriendlyTime(issuesObj[issueKey].fields.aggregatetimeestimate)
-            + ", Logged: " + me.uiFriendlyTime(issuesObj[issueKey].fields.aggregatetimespent);
-        var value = '<img src="' + issuesObj[issueKey].fields.priority.iconUrl + '" title="' + hoverText
-            + '" alt="' + issuesObj[issueKey].fields.priority.name + '" width="16px">';
+        var hoverText = issuesObj[issueKey].fields.priority.name + ' Priority. ' +
+            " Estimated: " + me.uiFriendlyTime(issuesObj[issueKey].fields.aggregatetimeoriginalestimate) +
+            ", Remaining: " + me.uiFriendlyTime(issuesObj[issueKey].fields.aggregatetimeestimate) +
+            ", Logged: " + me.uiFriendlyTime(issuesObj[issueKey].fields.aggregatetimespent);
+        var value = '<img src="' + issuesObj[issueKey].fields.priority.iconUrl + '" title="' + hoverText +
+            '" alt="' + issuesObj[issueKey].fields.priority.name + '" width="16px">';
         //console.log('Value - ' + value);
         var actions = AJS.$(row).find('td.issuetype');
 
@@ -104,7 +119,10 @@ CustomJira.prototype.updateEpicTable = function(tr) {
     });
 };
 
-
+/**
+ * Uses Jira API to get more data on all the issues in the epic, then calls other
+ * functions to update the document.
+ */
 CustomJira.prototype.updateEpicIssue = function() {
     var me = this;
 
@@ -115,11 +133,11 @@ CustomJira.prototype.updateEpicIssue = function() {
     // Note we only update Epic issues 
     var tr = me.getEpicTableRows();
 
-    if (typeof tr == 'object' && Object.keys(tr).length) {        
+    if (typeof tr == 'object' && Object.keys(tr).length) {
         me.apiSearch({
             maxResults: 999,
-            fields: 'aggregatetimeestimate,aggregatetimeoriginalestimate,aggregatetimespent'
-                + ',priority,resolutiondate,status,duedate', 
+            fields: 'aggregatetimeestimate,aggregatetimeoriginalestimate,aggregatetimespent' +
+                ',priority,resolutiondate,status,duedate', 
             jql: '"Epic Link" = '+ me.epicKey +' '+ me.jqlOrderBy
         }, function(data){
             me.epicApiData = data;
@@ -127,10 +145,12 @@ CustomJira.prototype.updateEpicIssue = function() {
             me.enableEpicTimeTracking && me.updateTotalTime();
             me.enableEpicTableChanges && me.addJqlLink();
         });
-    }   
+    }
 };
 
-
+/**
+ * Adds the "xx of yy Resolved" link to top right of "Issues in Epic" table.
+ */
 CustomJira.prototype.addJqlLink = function() {
     var me = this;
     var resolvedCount = 0;
@@ -150,7 +170,10 @@ CustomJira.prototype.addJqlLink = function() {
     AJS.$('#greenhopper-epics-issue-web-panel_heading ul').prepend(html);
 };
 
-
+/*
+ * @returns {string} url used to summarize time tracking info in JQL similar to what is
+ * done in updateTotalTime
+ */
 CustomJira.prototype.buildUrlEpicTasksSubtasks = function() {
     var me = this;
 
@@ -165,12 +188,14 @@ CustomJira.prototype.buildUrlEpicTasksSubtasks = function() {
     } else {
         // ?
     }
-    jql += ' ' + me.jqlOrderBy; 
+    jql += ' ' + me.jqlOrderBy;
 
     return "/issues/?jql="+ encodeURIComponent(jql).replace(/'/g,"%27");
-}
+};
 
-
+/**
+ * Adds or replaces #timetrackingmodule html after aggregating time stats
+ */
 CustomJira.prototype.updateTotalTime = function() {
     var me = this;
     var html = me.timeTrackingHtml();
@@ -191,9 +216,10 @@ CustomJira.prototype.updateTotalTime = function() {
     });
     maxTime = Math.max(alltix.estimated, alltix.remaining, alltix.logged, 1);
 
-    me.debug && console.log(" Estimated: " + me.uiFriendlyTime(alltix.estimated)
-            + ", Remaining: " + me.uiFriendlyTime(alltix.remaining)
-            + ", Logged: " + me.uiFriendlyTime(alltix.logged)
+    me.debug && console.log(
+        " Estimated: " + me.uiFriendlyTime(alltix.estimated) +
+        ", Remaining: " + me.uiFriendlyTime(alltix.remaining) +
+        ", Logged: " + me.uiFriendlyTime(alltix.logged)
     );
     html = html.replace(/urlEpicTasksAndSubtasks/g, me.buildUrlEpicTasksSubtasks() );
     html = html.replace(/tEstTime/g, me.uiFriendlyTime(alltix.estimated));
@@ -209,13 +235,18 @@ CustomJira.prototype.updateTotalTime = function() {
 
     AJS.$('#timetrackingmodule').remove();
     AJS.$('#datesmodule').after(html);
-}
+};
 
 
+/**
+ * This function is basically a wrapper around a javascript comment that contains HTML.
+ *
+ * @returns {string} html needed for Time Tracking
+ */
 CustomJira.prototype.timeTrackingHtml = function() {
     function heredoc (f) {
         return f.toString().match(/\/\*\s*([\s\S]*?)\s*\*\//m)[1];
-    };
+    }
     // If you need to update the following html, copy and paste from jira, format http://www.cleancss.com/html-beautify/,
     // then find actual times and percents and replace with variable names defined in updateTotalTime, 
     // such as tEstTime, tEstPctDone, etc
@@ -310,11 +341,18 @@ CustomJira.prototype.timeTrackingHtml = function() {
     return html;
 }; // timeTrackingHtml
 
+
 // 
-// Utility functions at bottom
+// Utility functions below
 // 
 
 
+/**
+ * Performs search on Jira's own REST API
+ *
+ * @param {Object} searchParams - rest api search parameters
+ * @param {CustomJira~apiSearchCallback} cb - The callback that handles the response.
+ */
 CustomJira.prototype.apiSearch = function(searchParams, cb) {
     var me = this || {};
     if (!(searchParams && searchParams.jql)) {
@@ -326,11 +364,24 @@ CustomJira.prototype.apiSearch = function(searchParams, cb) {
             data: data
         };
         me.debug && console.log('Response from /rest/api/latest/search ', me.lastApi);
-        typeof cb == 'function' && cb(data);
+        if (typeof cb == 'function') cb(data);
     });
 };
+/**
+ * This callback is displayed as part of the CustomJira class.
+ * @callback CustomJira~apiSearchCallback
+ * @param {data} data passed from jQuery's getJSON() callback
+ */
 
 
+
+
+/**
+ * Converts seconds to string, like 310 to 5m10s
+ *
+ * @param {number} seconds 
+ * @returns {string} human readble time
+ */
 CustomJira.prototype.uiFriendlyTime = function(seconds) {
     if (!seconds) return 0;
     var hrs = Math.floor(seconds/3600);
@@ -344,8 +395,13 @@ CustomJira.prototype.uiFriendlyTime = function(seconds) {
 };
 
 
-/*
- *  Copies from src to obj, skipping anything that does not have a corresponding valid key
+/**
+ * Copies from src to obj, skipping anything that does not have a corresponding valid key
+ *
+ * @param {Object} src 
+ * @param {Object} valid 
+ * @param {Object} [obj] - created if not specified
+ * @returns {Object} modified version of obj
  */
 CustomJira.prototype.extendKeys = function(src, valid, obj) {
     obj || (obj = {});
@@ -358,7 +414,9 @@ CustomJira.prototype.extendKeys = function(src, valid, obj) {
     return obj;
 };
 
-
+/**
+ * @returns {string} username used in Jira, 'anonymous' if not logged in, 'unknown' if html changed.
+ */
 CustomJira.prototype.getCurrentUser = function () {
     var userId = 'unknown';
     if (AJS.$('#user-options .login-link').length) {
@@ -368,14 +426,14 @@ CustomJira.prototype.getCurrentUser = function () {
         userId = AJS.$('#header-details-user-fullname').data('username');
     }
     return userId;
-}
+};
+
+// @returns {(number|Array)} 
 
 
-
-
-/*
- * @param object rapidViewNums - array of strings, each is rapidview number for a kanban board to check
- * @returns boolean 
+/**
+ * @param {Object} rapidViewNums - array of strings, each is rapidview number for a kanban board to check
+ * @returns {boolean} true if current page matches the rapidViewNums 
  */
 CustomJira.prototype.isKanbanBoard = function(rapidViewNums) {
     if (window.location.pathname != '/secure/RapidBoard.jspa') return false;
@@ -390,7 +448,11 @@ CustomJira.prototype.isKanbanBoard = function(rapidViewNums) {
     return false;
 };
 
-
+/**
+ * Returns true if 'component' exists on issue, false otherwise.
+ *
+ * @param {String} component - jira system defined component
+ */
 CustomJira.prototype.hasComponent = function(component) {
     var me = this;
     var found = false;
@@ -403,9 +465,10 @@ CustomJira.prototype.hasComponent = function(component) {
 };
 
 
-
-// makeClass - By John Resig (MIT Licensed)
-// https://johnresig.com/blog/simple-class-instantiation/
+/**
+ * makeClass - By John Resig (MIT Licensed).
+ * https://johnresig.com/blog/simple-class-instantiation/
+ */
 function makeClass(){
   return function(args){
     if ( this instanceof arguments.callee ) {
