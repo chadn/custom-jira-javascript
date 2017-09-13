@@ -12,7 +12,7 @@ Must be Jira Admin to [edit the Announcement banner](https://confluence.atlassia
 
 ```
 <script>
-AJS.$.getScript('https://raw.githubusercontent.com/chadn/custom-jira-javascript/master/custom-jira.js', function() {
+AJS.$.getScript('https://cdn.rawgit.com/chadn/custom-jira-javascript/master/custom-jira.js', function() {
     try {
         window.cj = AJS.CustomJira();
     } catch (e) {

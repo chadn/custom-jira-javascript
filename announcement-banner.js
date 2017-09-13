@@ -1,5 +1,7 @@
+// if copy pasting to announcement banner, uncomment next line
+// <script>
 
-AJS.$.getScript('https://raw.githubusercontent.com/chadn/custom-jira-javascript/master/custom-jira.js', function() {
+AJS.$.getScript('https://cdn.rawgit.com/chadn/custom-jira-javascript/master/custom-jira.js', function() {
     console.log("Loaded custom-jira.js, jquery ver=" + AJS.$.fn.jquery);
     try {
         window.cj = AJS.CustomJira({
@@ -21,11 +23,10 @@ AJS.$('#announcement-banner').css('display','none');
 
 
 // Google Analyitcs - using gtag.js beta, instead of analytics.js
-<script async src="https://www.googletagmanager.com/gtag/js"></script>
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments)};
 gtag('js', new Date());
-gtag('config', 'UA-xxxxxxxxx');
+gtag('config', 'UA-xxxxxxx');
 gtag('set', {'user_id': getCurrentUser() }); // Set the user ID using signed-in user_id.
 
 function getCurrentUser() {
@@ -36,6 +37,22 @@ function getCurrentUser() {
     if (AJS.$('#header-details-user-fullname').length) {
         userId = AJS.$('#header-details-user-fullname').data('username');
     }
-    return userId;
+    return userId.hashcode();
 }
+
+String.prototype.hashCode = function() {
+  var hash = 0, i, chr;
+  if (this.length === 0) return hash;
+  for (i = 0; i < this.length; i++) {
+    chr   = this.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
+
+// if copy pasting to announcement banner, uncomment next 2 lines
+//</script>
+//<script async src="https://www.googletagmanager.com/gtag/js?id=UA-xxxxxxx"></script>
+
 
