@@ -1,16 +1,10 @@
 // https://github.com/chadn/custom-jira-javascript
 (function(){
 
-AJS.toInit(function() {
-    JIRA.bind(JIRA.Events.ISSUE_REFRESHED, function(e, context, reason) {
-        console.log("CHAD TEST ISSUE_REFRESHED ", e, context, reason);
-    });
-});
-
 var CustomJira = AJS.CustomJira = makeClass();
 
 /**
- * Initialize and run.
+ * Initialize
  *
  * @param {Object} [opts] - an optional set of configuration options, details in comments. 
  */
@@ -32,7 +26,7 @@ CustomJira.prototype.init = function(opts) {
         // It is object where key is jira userid and val is personalized JQL 'ORDER BY ...'
         // if key is '*', then val will be default for all
         'jqlOrderByObject': {
-            // Jira Admins can customize status sort order in /secure/admin/ViewStatuses.jspa
+            // Regarding status sort - Jira Admins can customize status sort order in /secure/admin/ViewStatuses.jspa
             '*'    : 'ORDER BY status ASC, priority DESC, resolution DESC, updatedDate ASC, project ASC'
         },
 
@@ -62,7 +56,7 @@ CustomJira.prototype.init = function(opts) {
 
 
 /**
- * Runs the script, on page load or when when page is refreshed.
+ * Runs what is enabled, on page load or when when page is refreshed.
  */
 CustomJira.prototype.runit = function() {
     var me = this;
@@ -70,6 +64,7 @@ CustomJira.prototype.runit = function() {
 
     // Wait until page is loaded
     AJS.toInit(function() {
+
         me.updateEpicIssue();
     });
 };
@@ -138,7 +133,7 @@ CustomJira.prototype.updateEpicTable = function(tr) {
         var actions = AJS.$(row).find('td.issuetype');
 
         AJS.$(actions).before('<td class="nav priority">' + value + '</td>');
-        me.debug && console.log('added priority column');
+        me.debug && console.log('added priority column for issue key '  + issueKey);
     });
 };
 
@@ -149,26 +144,28 @@ CustomJira.prototype.updateEpicTable = function(tr) {
 CustomJira.prototype.updateEpicIssue = function() {
     var me = this;
 
+    // return if features not enabled
     if (!(me.enableEpicTimeTracking || me.enableEpicTableChanges)) return;
+
+    // return if not on Epic Issue page
+    var tr = me.getEpicTableRows();
+    if (!(typeof tr == 'object' && Object.keys(tr).length)) return;
+
 
     me.epicKey = AJS.$('#key-val').text();
 
-    // Note we only update Epic issues 
-    var tr = me.getEpicTableRows();
+    me.apiSearch({
+        maxResults: 999,
+        fields: 'aggregatetimeestimate,aggregatetimeoriginalestimate,aggregatetimespent' +
+            ',priority,resolutiondate,status,duedate', 
+        jql: '"Epic Link" = '+ me.epicKey +' '+ me.jqlOrderBy
+    }, function(data){
+        me.epicApiData = data;
+        me.enableEpicTableChanges && me.updateEpicTable(tr);
+        me.enableEpicTableChanges && me.addJqlLink();
+        me.enableEpicTimeTracking && me.updateTotalTime();
+    });
 
-    if (typeof tr == 'object' && Object.keys(tr).length) {
-        me.apiSearch({
-            maxResults: 999,
-            fields: 'aggregatetimeestimate,aggregatetimeoriginalestimate,aggregatetimespent' +
-                ',priority,resolutiondate,status,duedate', 
-            jql: '"Epic Link" = '+ me.epicKey +' '+ me.jqlOrderBy
-        }, function(data){
-            me.epicApiData = data;
-            me.enableEpicTableChanges && me.updateEpicTable(tr);
-            me.enableEpicTimeTracking && me.updateTotalTime();
-            me.enableEpicTableChanges && me.addJqlLink();
-        });
-    }
 };
 
 /**
