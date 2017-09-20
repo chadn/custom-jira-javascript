@@ -1,6 +1,12 @@
 // https://github.com/chadn/custom-jira-javascript
 (function(){
 
+AJS.toInit(function() {
+    JIRA.bind(JIRA.Events.ISSUE_REFRESHED, function(e, context, reason) {
+        console.log("CHAD TEST ISSUE_REFRESHED ", e, context, reason);
+    });
+});
+
 var CustomJira = AJS.CustomJira = makeClass();
 
 /**
@@ -46,9 +52,26 @@ CustomJira.prototype.init = function(opts) {
     me.userId = me.getCurrentUser();
     me.jqlOrderBy = me.jqlOrderByObject[me.userId] || me.jqlOrderByObject['*'];
 
-    me.updateEpicIssue();
+    me.runit();
+
+    // Also run on refresh, like when going from JQL results to clicking on individual epic
+    JIRA.bind(JIRA.Events.ISSUE_REFRESHED, me.runit.bind(me) );
 
     return me;
+};
+
+
+/**
+ * Runs the script, on page load or when when page is refreshed.
+ */
+CustomJira.prototype.runit = function() {
+    var me = this;
+    me.debug && console.log("CustomJira.prototype.runit", me);
+
+    // Wait until page is loaded
+    AJS.toInit(function() {
+        me.updateEpicIssue();
+    });
 };
 
 
